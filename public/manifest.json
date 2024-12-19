@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Google Meet Instant Join",
+  "version": "1.0",
+  "description": "Open a new Google Meet meeting instantly.",
+  "permissions": ["activeTab"],
+  "host_permissions": ["https://meet.google.com/"],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "logo192.png",
+      "48": "logo192.png",
+      "128": "logo192.png"
+    }
+  }
+}
