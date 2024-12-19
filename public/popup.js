@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     document.getElementById("new-meeting-btn").addEventListener("click", () => {
-      // Show loading state
       contentDiv.innerHTML = `
         <div class="section">
           <p>Creating meeting...</p>
@@ -22,35 +21,68 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const createMeeting = () => {
-    // Create a background tab
-    chrome.tabs.create({ url: "https://meet.google.com/new", active: false }, (newTab) => {
-      let urlCheckInterval;
-      
-      const checkForFinalUrl = (tabId) => {
-        chrome.tabs.get(tabId, (tab) => {
-          const currentUrl = tab.url;
-          if (currentUrl.match(/meet\.google\.com\/[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}$/)) {
-            clearInterval(urlCheckInterval);
-            meetingLink = currentUrl;
-            chrome.tabs.remove(tabId); // Remove the background tab
-            renderSecondScreen();
-          }
-        });
-      };
+    let attempts = 0;
+    const maxAttempts = 3; // Number of retry attempts
 
-      urlCheckInterval = setInterval(() => {
-        checkForFinalUrl(newTab.id);
-      }, 500);
-
-      setTimeout(() => {
-        if (urlCheckInterval) {
-          clearInterval(urlCheckInterval);
+    const attemptCreateMeeting = () => {
+      chrome.tabs.create({ url: "https://meet.google.com/new", active: false }, (newTab) => {
+        let urlCheckInterval;
+        let timeoutId;
+        
+        const cleanup = () => {
+          if (urlCheckInterval) clearInterval(urlCheckInterval);
+          if (timeoutId) clearTimeout(timeoutId);
           chrome.tabs.remove(newTab.id);
-          alert("Failed to generate meeting link. Please try again.");
-          renderInitialScreen();
-        }
-      }, 10000);
-    });
+        };
+
+        const checkForFinalUrl = (tabId) => {
+          chrome.tabs.get(tabId, (tab) => {
+            if (chrome.runtime.lastError || !tab) {
+              cleanup();
+              handleError();
+              return;
+            }
+
+            const currentUrl = tab.url;
+            if (currentUrl.match(/meet\.google\.com\/[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}$/)) {
+              cleanup();
+              meetingLink = currentUrl;
+              renderSecondScreen();
+            }
+          });
+        };
+
+        const handleError = () => {
+          attempts++;
+          if (attempts < maxAttempts) {
+            console.log(`Attempt ${attempts} failed, retrying...`);
+            attemptCreateMeeting();
+          } else {
+            contentDiv.innerHTML = `
+              <div class="section">
+                <p>Failed to generate meeting link.</p>
+                <button id="retry-btn">Try Again</button>
+              </div>
+            `;
+            document.getElementById("retry-btn").addEventListener("click", () => {
+              attempts = 0;
+              createMeeting();
+            });
+          }
+        };
+
+        urlCheckInterval = setInterval(() => {
+          checkForFinalUrl(newTab.id);
+        }, 1000); // Increased interval to 1 second
+
+        timeoutId = setTimeout(() => {
+          cleanup();
+          handleError();
+        }, 30000); // Increased timeout to 30 seconds
+      });
+    };
+
+    attemptCreateMeeting();
   };
 
   const renderSecondScreen = () => {
