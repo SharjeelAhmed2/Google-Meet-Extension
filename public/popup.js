@@ -1,16 +1,7 @@
-// document.addEventListener("DOMContentLoaded", () => {
-//   const button = document.getElementById("start-meeting-btn");
-
-//   button.addEventListener("click", () => {
-//     chrome.tabs.create({ url: "https://meet.google.com/new" });
-//   });
-// });
-
-
 document.addEventListener("DOMContentLoaded", () => {
   const contentDiv = document.getElementById("content");
+  let meetingLink = "";
 
-  // Function to render the initial screen
   const renderInitialScreen = () => {
     contentDiv.innerHTML = `
       <div class="section">
@@ -19,32 +10,78 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
-    // Add click event listener to the "New Meeting" button
-    document.getElementById("new-meeting-btn").addEventListener("click", renderSecondScreen);
+    document.getElementById("new-meeting-btn").addEventListener("click", () => {
+      // Show loading state
+      contentDiv.innerHTML = `
+        <div class="section">
+          <p>Creating meeting...</p>
+        </div>
+      `;
+      createMeeting();
+    });
   };
 
-  // Function to render the second screen
+  const createMeeting = () => {
+    // Create a background tab
+    chrome.tabs.create({ url: "https://meet.google.com/new", active: false }, (newTab) => {
+      let urlCheckInterval;
+      
+      const checkForFinalUrl = (tabId) => {
+        chrome.tabs.get(tabId, (tab) => {
+          const currentUrl = tab.url;
+          if (currentUrl.match(/meet\.google\.com\/[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}$/)) {
+            clearInterval(urlCheckInterval);
+            meetingLink = currentUrl;
+            chrome.tabs.remove(tabId); // Remove the background tab
+            renderSecondScreen();
+          }
+        });
+      };
+
+      urlCheckInterval = setInterval(() => {
+        checkForFinalUrl(newTab.id);
+      }, 500);
+
+      setTimeout(() => {
+        if (urlCheckInterval) {
+          clearInterval(urlCheckInterval);
+          chrome.tabs.remove(newTab.id);
+          alert("Failed to generate meeting link. Please try again.");
+          renderInitialScreen();
+        }
+      }, 10000);
+    });
+  };
+
   const renderSecondScreen = () => {
     contentDiv.innerHTML = `
       <div class="section">
-        <p>Section 1: This is the first text block.</p>
-        <button id="section-1-btn">Button 1</button>
-      </div>
-      <div class="section">
-        <p>Section 2: This is the second text block.</p>
-        <button id="section-2-btn">Button 2</button>
+        <p>Meeting created successfully!</p>
+        <button id="copy-link-btn">Copy Link</button>
+        <button id="join-meeting-btn">Join Meeting</button>
       </div>
     `;
 
-    // Add functionality to buttons (currently do nothing)
-    document.getElementById("section-1-btn").addEventListener("click", () => {
-      console.log("Button 1 clicked!");
+    document.getElementById("copy-link-btn").addEventListener("click", () => {
+      if (meetingLink) {
+        navigator.clipboard.writeText(meetingLink).then(() => {
+          alert(`Meeting link copied: ${meetingLink}`);
+        }).catch((err) => {
+          console.error("Failed to copy link:", err);
+        });
+      } else {
+        alert("No meeting link available!");
+      }
     });
-    document.getElementById("section-2-btn").addEventListener("click", () => {
-      console.log("Button 2 clicked!");
+
+    document.getElementById("join-meeting-btn").addEventListener("click", () => {
+      if (meetingLink) {
+        chrome.tabs.create({ url: meetingLink, active: true });
+      } else {
+        alert("No meeting link available!");
+      }
     });
   };
 
-  // Render the initial screen when the popup loads
   renderInitialScreen();
 });
