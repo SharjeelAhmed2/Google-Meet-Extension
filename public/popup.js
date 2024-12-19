@@ -4,11 +4,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const renderInitialScreen = () => {
     contentDiv.innerHTML = `
-      <div class="section">
-        <p>Welcome to the Google Meet Extension!</p>
-        <button id="new-meeting-btn">New Meeting</button>
-      </div>
-    `;
+     <div class="section">
+      <p class="instruction-text">Click below to copy a URL that you can send to your customer to join this Meeting Room.</p>
+      <button id="new-meeting-btn">New Meeting</button>
+    </div>
+  `;
 
     document.getElementById("new-meeting-btn").addEventListener("click", () => {
       contentDiv.innerHTML = `
@@ -87,12 +87,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const renderSecondScreen = () => {
     contentDiv.innerHTML = `
-      <div class="section">
-        <p>Meeting created successfully!</p>
-        <button id="copy-link-btn">Copy Link</button>
-        <button id="join-meeting-btn">Join Meeting</button>
-      </div>
-    `;
+    <div class="section">
+      <p class="instruction-text">Click below to copy a URL that you can send to your customer to join this Meeting Room.</p>
+      <button id="copy-link-btn">Copy Customer Link</button>
+      
+      <p class="instruction-text">Alternatively, you can invite someone by sending them an SMS with the invite link.</p>
+      <button id="invite-customer-btn">Invite Customer</button>
+      
+      <p class="instruction-text">Join your current Talkative Meeting Room. This will open in a new window.</p>
+      <button id="join-meeting-btn">Join Meeting Room</button>
+      
+      <p style="margin-top: 16px;">
+        <a href="#" onClick="renderInitialScreen()" class="link-text" id="start-new">Click here</a> to go back and start a new Meeting Room.
+      </p>
+    </div>
+  `;
 
     document.getElementById("copy-link-btn").addEventListener("click", () => {
       if (meetingLink) {
