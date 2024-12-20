@@ -92,6 +92,14 @@ document.addEventListener("DOMContentLoaded", () => {
       <button id="copy-link-btn">Copy Customer Link</button>
       
       <p class="instruction-text">Alternatively, you can invite someone by sending them an SMS with the invite link.</p>
+      <div class="phone-input-container">
+        <input 
+          type="text" 
+          id="phone-number" 
+          placeholder="Enter phone number (with country code)"
+          class="phone-input"
+        />
+      </div>
       <button id="invite-customer-btn">Invite Customer</button>
       
       <p class="instruction-text">Join your current Talkative Meeting Room. This will open in a new window.</p>
