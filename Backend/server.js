@@ -1,22 +1,55 @@
+const express = require('express');
+const cors = require('cors');
 require('dotenv').config();
+const twilio = require('twilio');
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
+const app = express();
 
-const client = require('twilio')(accountSid, authToken);
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-const sendSMS = async (body) => {
-    const msgOptions = {
-        from: process.env.TWILIO_PHONE_NUMBER, // Your Twilio number
-        to: process.env.TO_NUMBER,            // Recipient's number
-        body: body                            // SMS body text
-    };
-    try {
-        const message = await client.messages.create(msgOptions);
-        console.log("Message sent:", message.sid);
-    } catch (error) {
-        console.error("Failed to send message:", error);
+// Initialize Twilio client
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+
+// SMS sending endpoint
+app.post('/api/send-sms', async (req, res) => {
+  try {
+    const { phoneNumber, message } = req.body;
+
+    // Validate input
+    if (!phoneNumber || !message) {
+      return res.status(400).json({ 
+        error: 'Phone number and message are required' 
+      });
     }
-};
 
-sendSMS("Hello World, Sharjeel!");
+    // Send SMS using Twilio
+    const twilioMessage = await twilioClient.messages.create({
+      body: message,
+      to: phoneNumber,
+      from: process.env.TWILIO_PHONE_NUMBER // Your Twilio phone number
+    });
+
+    res.json({ 
+      success: true, 
+      messageId: twilioMessage.sid 
+    });
+
+  } catch (error) {
+    console.error('SMS sending error:', error);
+    res.status(500).json({ 
+      error: 'Failed to send SMS',
+      details: error.message 
+    });
+  }
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
