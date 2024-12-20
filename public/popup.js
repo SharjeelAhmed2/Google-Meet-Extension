@@ -25,38 +25,68 @@ document.addEventListener("DOMContentLoaded", () => {
     const maxAttempts = 3; // Number of retry attempts
 
     const attemptCreateMeeting = () => {
-      chrome.tabs.create({ url: "https://meet.google.com/new", active: false }, (newTab) => {
+      // First check if there's an existing Google Meet tab we can use
+      chrome.tabs.query({url: "https://meet.google.com/*"}, (existingTabs) => {
+        let targetTab = existingTabs[0];
+        
+        if (targetTab) {
+          // If there's an existing tab, use it
+          chrome.tabs.update(targetTab.id, {url: "https://meet.google.com/new", active: false}, handleTab);
+        } else {
+          // If no existing tab, create one with minimal visibility
+          chrome.windows.create({
+            url: "https://meet.google.com/new",
+            type: "popup",
+            focused: false,
+            width: 1,
+            height: 1,
+            left: screen.width,  // Position off-screen
+            top: screen.height
+          }, (window) => {
+            handleTab(window.tabs[0]);
+          });
+        }
+      });
+    
+      const handleTab = (tab) => {
         let urlCheckInterval;
         let timeoutId;
         
         const cleanup = () => {
           if (urlCheckInterval) clearInterval(urlCheckInterval);
           if (timeoutId) clearTimeout(timeoutId);
-          chrome.tabs.remove(newTab.id);
+          
+          // Remove the window instead of just the tab if we created a popup
+          chrome.tabs.get(tab.id, (currentTab) => {
+            if (!chrome.runtime.lastError && currentTab.windowId) {
+              chrome.windows.remove(currentTab.windowId);
+            }
+          });
         };
-
+    
         const checkForFinalUrl = (tabId) => {
-          chrome.tabs.get(tabId, (tab) => {
-            if (chrome.runtime.lastError || !tab) {
+          chrome.tabs.get(tabId, (currentTab) => {
+            if (chrome.runtime.lastError || !currentTab) {
               cleanup();
               handleError();
               return;
             }
-
-            const currentUrl = tab.url;
+    
+            const currentUrl = currentTab.url;
             if (currentUrl.match(/meet\.google\.com\/[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}-[a-zA-Z0-9-]{3,}$/)) {
+              const finalUrl = currentUrl;
               cleanup();
-              meetingLink = currentUrl;
+              meetingLink = finalUrl;
               renderSecondScreen();
             }
           });
         };
-
+    
         const handleError = () => {
           attempts++;
           if (attempts < maxAttempts) {
             console.log(`Attempt ${attempts} failed, retrying...`);
-            attemptCreateMeeting();
+            setTimeout(attemptCreateMeeting, 1000);
           } else {
             contentDiv.innerHTML = `
               <div class="section">
@@ -70,16 +100,16 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         };
-
+    
         urlCheckInterval = setInterval(() => {
-          checkForFinalUrl(newTab.id);
-        }, 1000); // Increased interval to 1 second
-
+          checkForFinalUrl(tab.id);
+        }, 1000);
+    
         timeoutId = setTimeout(() => {
           cleanup();
           handleError();
-        }, 30000); // Increased timeout to 30 seconds
-      });
+        }, 30000);
+      };
     };
 
     attemptCreateMeeting();
@@ -102,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
       <button id="invite-customer-btn">Invite Customer</button>
       
-      <p class="instruction-text">Join your current Talkative Meeting Room. This will open in a new window.</p>
+      <p class="instruction-text">Join your current Google-Meet Meeting Room. This will open in a new window.</p>
       <button id="join-meeting-btn">Join Meeting Room</button>
       
       <p style="margin-top: 16px;">
