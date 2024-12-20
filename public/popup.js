@@ -106,10 +106,17 @@ document.addEventListener("DOMContentLoaded", () => {
       <button id="join-meeting-btn">Join Meeting Room</button>
       
       <p style="margin-top: 16px;">
-        <a href="#" onClick="renderInitialScreen()" class="link-text" id="start-new">Click here</a> to go back and start a new Meeting Room.
+            <a href="#" class="link-text" id="start-new">Click here</a> to go back and start a new Meeting Room.
       </p>
     </div>
   `;
+
+
+       // Add event listener for the "start new" link
+       document.getElementById("start-new").addEventListener("click", (e) => {
+        e.preventDefault(); // Prevent the default anchor behavior
+        renderInitialScreen();
+    });
 
     document.getElementById("copy-link-btn").addEventListener("click", () => {
       if (meetingLink) {
