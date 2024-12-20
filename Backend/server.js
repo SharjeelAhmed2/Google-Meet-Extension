@@ -6,7 +6,13 @@ const twilio = require('twilio');
 const app = express();
 
 // Middleware
-app.use(cors());
+ // More specific CORS configuration
+ app.use(cors({
+    origin: '*', // During development. For production, specify your extension's origin
+    methods: ['POST'],
+    allowedHeaders: ['Content-Type']
+  }));
+  
 app.use(express.json());
 
 // Initialize Twilio client
@@ -15,6 +21,10 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'Server is working!' });
+  });
+ 
 // SMS sending endpoint
 app.post('/api/send-sms', async (req, res) => {
   try {

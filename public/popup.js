@@ -123,6 +123,24 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    document.getElementById("invite-customer-btn").addEventListener("click", () => {
+      const phoneNumber = document.getElementById("phone-number").value.trim();
+      if (!phoneNumber) {
+        alert("Please enter a phone number");
+        return;
+      }
+      
+      if (!meetingLink) {
+        alert("No meeting link available!");
+        return;
+      }
+  
+      // Here you would add your application's SMS sending logic
+      // For example:
+      sendSMSInvite(phoneNumber, meetingLink);
+    });
+      
+
     document.getElementById("join-meeting-btn").addEventListener("click", () => {
       if (meetingLink) {
         chrome.tabs.create({ url: meetingLink, active: true });
@@ -132,5 +150,48 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  // Function to handle sending SMS (you'll need to implement this based on your application)
+  const sendSMSInvite = async (phoneNumber, link) => {
+    const inviteButton = document.getElementById('invite-customer-btn');
+    const originalButtonText = inviteButton.textContent;
+    inviteButton.textContent = 'Sending...';
+    inviteButton.disabled = true;
+  
+    try {
+      console.log('Attempting to send SMS to:', phoneNumber); // Debug log
+  
+      const response = await fetch('http://localhost:3000/api/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          phoneNumber: phoneNumber,
+          message: `You've been invited to join a meeting. Click here to join: ${link}`
+        })
+      });
+  
+      console.log('Response received:', response.status); // Debug log
+  
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error response:', errorData); // Debug log
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log('Success data:', data); // Debug log
+      alert('Invitation sent successfully!');
+  
+    } catch (error) {
+      console.error('Detailed error:', error); // More detailed error logging
+      alert(`Failed to send invitation: ${error.message}`);
+  
+    } finally {
+      inviteButton.textContent = originalButtonText;
+      inviteButton.disabled = false;
+    }
+  };
   renderInitialScreen();
 });
